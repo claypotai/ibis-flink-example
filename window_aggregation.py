@@ -1,8 +1,12 @@
+import sys
+
 import ibis
 import ibis.expr.datatypes as dt
 import ibis.expr.schema as sch
 from kafka import KafkaConsumer
 from pyflink.table import EnvironmentSettings, TableEnvironment
+
+local = len(sys.argv) > 1 and sys.argv[1] == "local"
 
 # 1. create a TableEnvironment
 env_settings = EnvironmentSettings.in_streaming_mode()
@@ -32,7 +36,7 @@ source_schema = sch.Schema(
 source_configs = {
     "connector": "kafka",
     "topic": "payment_msg",
-    "properties.bootstrap.servers": "localhost:9092",
+    "properties.bootstrap.servers": "localhost:9092" if local else "kafka:29092",
     "properties.group.id": "test_3",
     "scan.startup.mode": "earliest-offset",
     "format": "json",
@@ -58,7 +62,7 @@ sink_schema = sch.Schema(
 sink_configs = {
     "connector": "kafka",
     "topic": "sink",
-    "properties.bootstrap.servers": "localhost:9092",
+    "properties.bootstrap.servers": "localhost:9092" if local else "kafka:29092",
     "format": "json",
 }
 
@@ -81,7 +85,9 @@ agged = t[
 # 5. emit query result to sink table
 connection.insert("total_amount_by_province_id", agged)
 
-# Use the Kafka Python client to print some records from the sink topic.
-consumer = KafkaConsumer("sink")
-for _, msg in zip(range(10), consumer):
-    print(msg)
+if local:
+    # Use the Kafka Python client to stream records from the sink topic.
+    # Otherwise, the mini cluster will shut down upon script completion.
+    consumer = KafkaConsumer("sink")
+    for msg in zip(consumer):
+        print(msg)
