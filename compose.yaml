@@ -1,4 +1,31 @@
 services:
+  jobmanager:
+    image: ibis-flink
+    build: .
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+    networks:
+      - flink
+
+  taskmanager:
+    image: ibis-flink
+    build: .
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2  
+    networks:
+      - flink
+
   kafka:
     image: confluentinc/cp-kafka:7.5.2
     hostname: kafka
