@@ -13,7 +13,7 @@ This repository contains a simple, self-contained example using the Apache Flink
 We strongly recommend creating a virtual environment for your project. In your virtual environment, install the dependencies from the requirements file:
 
 ```bash
-python -m pip install requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 > [!CAUTION]
