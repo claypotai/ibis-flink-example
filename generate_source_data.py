@@ -1,9 +1,9 @@
-import calendar
+# import calendar
 import random
-import time
-from datetime import datetime, timedelta
+# import time
+from datetime import datetime
 from json import dumps
-from random import randint
+# from random import randint
 from time import sleep
 import csv
 from io import StringIO
@@ -12,33 +12,33 @@ import requests
 from kafka import KafkaProducer, errors
 
 
-def write_data(producer):
-    data_cnt = 10
-    order_id = calendar.timegm(time.gmtime())
-    max_price = 100000
-    topic = "payment_msg"
+# def write_data(producer):
+#     data_cnt = 20000
+#     order_id = calendar.timegm(time.gmtime())
+#     max_price = 100000
+#     topic = "payment_msg"
 
-    print(f"Producing {data_cnt} records to Kafka topic {topic}")
-    for _ in range(data_cnt):
-        ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        rd = random.random()
-        order_id += 1
-        pay_amount = max_price * rd
-        pay_platform = 0 if random.random() < 0.9 else 1
-        province_id = randint(0, 6)
-        cur_data = {
-            "createTime": ts,
-            "orderId": order_id,
-            "payAmount": pay_amount,
-            "payPlatform": pay_platform,
-            "provinceId": province_id,
-        }
-        producer.send(topic, value=cur_data)
-        sleep(0.5)
-    print("done")
+#     print(f"Producing {data_cnt} records to Kafka topic {topic}")
+#     for _ in range(data_cnt):
+#         ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+#         rd = random.random()
+#         order_id += 1
+#         pay_amount = max_price * rd
+#         pay_platform = 0 if random.random() < 0.9 else 1
+#         province_id = randint(0, 6)
+#         cur_data = {
+#             "createTime": ts,
+#             "orderId": order_id,
+#             "payAmount": pay_amount,
+#             "payPlatform": pay_platform,
+#             "provinceId": province_id,
+#         }
+#         producer.send(topic, value=cur_data)
+#         sleep(0.5)
+#     print("done")
 
 def write_fraud_detection_data_from_s3(producer):
-    data_cnt = 2000000
+    data_cnt = 400000
     topic = "transaction"
 
     bucket_name = "claypot-fraud-detection"
@@ -65,8 +65,9 @@ def write_fraud_detection_data_from_s3(producer):
     reader = csv.reader(csv_file)
     keys = next(reader)
 
-    print(f"Producing {data_cnt} records to Kafka topic {topic}")  # noqa: T201
-    for i in range(data_cnt):
+    print(f"Producing {data_cnt} records to Kafka topic {topic}")
+
+    for _ in range(data_cnt):
         values = next(reader)
         data_dict = dict(zip(keys, values))
         ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
@@ -77,15 +78,13 @@ def write_fraud_detection_data_from_s3(producer):
             data_dict[var] = int(data_dict[var])
         for var in float_vaibles:
             data_dict[var] = float(data_dict[var])
-        data_dict["trans_id"] = i
-        used = ['trans_date_trans_time', 'cc_num', 'amt', 'trans_num', 'merchant', 'category']
+        data_dict['user_id'] = hash(data_dict['last'] + data_dict['first'] + data_dict['dob'])
+        used = ['user_id', 'trans_date_trans_time', 'cc_num', 'amt', 'trans_num', 'merchant', 'category', 'is_fraud', 'first', 'last', 'dob', 'zipcode']
         data_dict = {key: value for key, value in data_dict.items() if key in used}
 
         producer.send(topic, value=data_dict)
         print(data_dict)
-        sleep(.1)
-
-    print(f"Produced {data_cnt} records to Kafka topic {topic}")  # noqa: T201
+        sleep(random.uniform(0.1, 5.0))
 
 
 def create_producer():
@@ -107,6 +106,6 @@ def create_producer():
 
 if __name__ == "__main__":
     producer = create_producer()
-    write_data(producer)
+    # write_data(producer)
     # fraud detection dataset
     write_fraud_detection_data_from_s3(producer)

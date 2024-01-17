@@ -1,0 +1,69 @@
+cc_num_amt:
+  primary_keys:
+    - name: cc_num
+      type: dt.int64
+  agg_col: amt
+  agg_func: 
+    - sum
+    - min
+    - max
+  time_col: trans_date_trans_time
+  interval_in_minutes:
+    - 1
+    - 5
+---  
+user_amt:
+  primary_keys:
+    - name: user_id
+      type: dt.int64
+  agg_col: amt
+  agg_func: 
+    - sum
+    - min
+    - max
+  time_col: trans_date_trans_time
+  interval_in_minutes:
+    - 1
+    - 5
+---  
+zipcode_amt:
+  primary_keys:
+    - name: zipcode
+      type: dt.str
+  agg_col: amt
+  agg_func: 
+    - sum
+    - min
+    - max
+  time_col: trans_date_trans_time
+  interval_in_minutes:
+    - 1
+    - 5
+---  
+merchant_amt:
+  primary_keys:
+    - name: merchant
+      type: dt.str
+  agg_col: amt
+  agg_func: 
+    - sum
+    - min
+    - max
+  time_col: trans_date_trans_time
+  interval_in_minutes:
+    - 1
+    - 5
+---  
+category_amt:
+  primary_keys:
+    - name: merchant
+      type: dt.str
+  agg_col: amt
+  agg_func: 
+    - sum
+    - min
+    - max
+  time_col: trans_date_trans_time
+  interval_in_minutes:
+    - 1
+    - 5
