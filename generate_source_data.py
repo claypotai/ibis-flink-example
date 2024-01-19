@@ -38,8 +38,9 @@ from kafka import KafkaProducer, errors
 #     print("done")
 
 def write_fraud_detection_data_from_s3(producer):
-    data_cnt = 400000
+
     topic = "transaction"
+    batch_size = 1000
 
     bucket_name = "claypot-fraud-detection"
     object_key = "FraudTransactions.csv"
@@ -65,13 +66,12 @@ def write_fraud_detection_data_from_s3(producer):
     reader = csv.reader(csv_file)
     keys = next(reader)
 
-    print(f"Producing {data_cnt} records to Kafka topic {topic}")
-
-    for _ in range(data_cnt):
-        values = next(reader)
+    print(f"Send records to Kafka topic {topic}")
+    cnt = 0
+    for values in reader:
+        # values = next(reader)
         data_dict = dict(zip(keys, values))
-        ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        data_dict['trans_date_trans_time'] = ts
+        data_dict['trans_date_trans_time'] = datetime.utcfromtimestamp(int(data_dict['unix_time'])//1000).strftime('%Y-%m-%d %H:%M:%S')
         int_variables = ['cc_num', 'city_pop', 'unix_time', 'is_fraud']
         float_vaibles = ['amt', 'latitude', 'longitude', 'merch_lat', 'merch_long']
         for var in int_variables:
@@ -83,8 +83,15 @@ def write_fraud_detection_data_from_s3(producer):
         data_dict = {key: value for key, value in data_dict.items() if key in used}
 
         producer.send(topic, value=data_dict)
-        print(data_dict)
-        sleep(random.uniform(0.1, 5.0))
+        cnt += 1
+        if cnt == batch_size:
+            producer.flush()
+            print(f"send {cnt} rows to kafka")
+            cnt = 0
+            sleep(1)
+    if cnt > 0:
+        producer.flush()
+    producer.close()
 
 
 def create_producer():
