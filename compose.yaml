@@ -77,25 +77,25 @@ services:
     networks:
       - flink
 
-  user-feature-generator:
-    image: ibis-flink-feature-generator
-    build:
-      context: .
-      dockerfile: user-feature-generator.Dockerfile
-    depends_on:
-      - data-generator
-    networks:
-      - flink
+  # user-feature-generator:
+  #   image: ibis-flink-feature-generator
+  #   build:
+  #     context: .
+  #     dockerfile: user-feature-generator.Dockerfile
+  #   depends_on:
+  #     - data-generator
+  #   networks:
+  #     - flink
 
-  category-feature-generator:
-    image: ibis-flink-feature-generator
-    build:
-      context: .
-      dockerfile: long-term-category-feature-generator.Dockerfile
-    depends_on:
-      - data-generator
-    networks:
-      - flink
+  # category-feature-generator:
+  #   image: ibis-flink-feature-generator
+  #   build:
+  #     context: .
+  #     dockerfile: long-term-category-feature-generator.Dockerfile
+  #   depends_on:
+  #     - data-generator
+  #   networks:
+  #     - flink
 
 networks:
   flink:

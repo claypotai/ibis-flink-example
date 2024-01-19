@@ -1,4 +1,3 @@
-import sys
 import argparse
 
 from kafka import KafkaConsumer
@@ -29,7 +28,7 @@ connection = ibis.flink.connect(table_env)
 
 # Flink’s streaming connectors aren't part of the binary distribution.
 # Link the Kafka connector for cluster execution by adding a JAR file.
-connection._exec_sql("ADD JAR '../../flink-sql-connector-kafka-3.0.2-1.18.jar'")
+connection._exec_sql("ADD JAR 'flink-sql-connector-kafka-3.0.2-1.18.jar'")
 
 # 2. Create source table
 source_topic_name = "transaction"
@@ -73,7 +72,7 @@ source_table = connection.create_table(
 )
 
 # 3. Feature Generation using Flink backend
-# Define a window specification for aggregating maximum transaction amount over the last X minutes.
+# Define a window specification for different aggregations over the last X minutes.
 # The aggregation is partitioned by user_id and ordered by trans_date_trans_time.
 # The window range is set to the interval from X minutes ago to the current time.
 
@@ -103,7 +102,7 @@ user_trans_amt_agg = source_table[
             range=(-ibis.interval(minutes=interval_in_minutes), 0),
         )
     ).name(f"user_mean_trans_amt_last_{interval_in_minutes}min"),
-    # Calculate the average transaction amount over the specified window.
+    # Calculate the number of transaction count over the specified window.
     source_table.amt.count().over(
         ibis.window(
             group_by=source_table.user_id,

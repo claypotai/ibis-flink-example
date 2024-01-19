@@ -1,5 +1,4 @@
 # import calendar
-import random
 # import time
 from datetime import datetime
 from json import dumps
@@ -11,31 +10,6 @@ import requests
 
 from kafka import KafkaProducer, errors
 
-
-# def write_data(producer):
-#     data_cnt = 20000
-#     order_id = calendar.timegm(time.gmtime())
-#     max_price = 100000
-#     topic = "payment_msg"
-
-#     print(f"Producing {data_cnt} records to Kafka topic {topic}")
-#     for _ in range(data_cnt):
-#         ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-#         rd = random.random()
-#         order_id += 1
-#         pay_amount = max_price * rd
-#         pay_platform = 0 if random.random() < 0.9 else 1
-#         province_id = randint(0, 6)
-#         cur_data = {
-#             "createTime": ts,
-#             "orderId": order_id,
-#             "payAmount": pay_amount,
-#             "payPlatform": pay_platform,
-#             "provinceId": province_id,
-#         }
-#         producer.send(topic, value=cur_data)
-#         sleep(0.5)
-#     print("done")
 
 def write_fraud_detection_data_from_s3(producer):
 
@@ -69,7 +43,6 @@ def write_fraud_detection_data_from_s3(producer):
     print(f"Send records to Kafka topic {topic}")
     cnt = 0
     for values in reader:
-        # values = next(reader)
         data_dict = dict(zip(keys, values))
         data_dict['trans_date_trans_time'] = datetime.utcfromtimestamp(int(data_dict['unix_time'])//1000).strftime('%Y-%m-%d %H:%M:%S')
         int_variables = ['cc_num', 'city_pop', 'unix_time', 'is_fraud']
@@ -113,6 +86,4 @@ def create_producer():
 
 if __name__ == "__main__":
     producer = create_producer()
-    # write_data(producer)
-    # fraud detection dataset
     write_fraud_detection_data_from_s3(producer)
