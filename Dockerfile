@@ -10,4 +10,4 @@ ENV JAVA_HOME="/usr/lib/jvm/java-11-openjdk-arm64/"
 ENV PATH="${JAVA_HOME}:${PATH}"
 
 # install PyFlink and Ibis
-RUN pip3 install apache-flink==1.18.0 'ibis-framework @ git+https://github.com/ibis-project/ibis.git@master'
+RUN pip3 install apache-flink==1.18.0 'ibis-framework @ git+https://github.com/ibis-project/ibis.git@main'
