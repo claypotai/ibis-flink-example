@@ -113,6 +113,28 @@ user_trans_amt_agg = source_table[
     source_table.trans_date_trans_time
 ]
 
+# 3.1 Alternative ways to calculate windowed aggregations
+''' 
+Different window options 
+    1. tumble(): a fixed size and do not overlap
+    2. hop(): Hopping windows have a fixed size and can be overlapping if the slide is smaller than the window size 
+    3. cumulate(): Cumulate windows don't have a fixed size and do overlap
+'''
+windowed_stream =  source_table.window_by(
+        time_col=source_table.trans_date_trans_time,
+    ).tumble(
+        window_size=ibis.interval(minutes=360)
+    )
+
+
+user_trans_amt_last_360m_agg_windowed_stream = windowed_stream.group_by(
+        ["window_start", "window_end", "user_id"]
+    ).agg(
+        user_max_trans_amt_last_360min=windowed_stream.amt.max(),
+        user_min_trans_amt_last_360min=windowed_stream.amt.min(),
+        user_mean_trans_amt_last_360min=windowed_stream.amt.mean(),
+    )
+
 # 4. Creat Sink
 sink_topic_name = f"user_trans_amt_last_{interval_in_minutes}min"
 sink_schema = sch.Schema(
