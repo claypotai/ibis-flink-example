@@ -56,8 +56,10 @@ services:
       kafka-topics --bootstrap-server kafka:29092 --list
 
       echo -e 'Creating kafka topics'
-      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic payment_msg --replication-factor 1 --partitions 1
-      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic sink --replication-factor 1 --partitions 1
+      # kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic payment_msg --replication-factor 1 --partitions 1
+      # kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic sink --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic transaction --replication-factor 1 --partitions 1
+      # kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic transaction_sink --replication-factor 1 --partitions 1
 
       echo -e 'Successfully created the following topics:'
       kafka-topics --bootstrap-server kafka:29092 --list
@@ -74,6 +76,26 @@ services:
       - init-kafka
     networks:
       - flink
+
+  # user-feature-generator:
+  #   image: ibis-flink-feature-generator
+  #   build:
+  #     context: .
+  #     dockerfile: user-feature-generator.Dockerfile
+  #   depends_on:
+  #     - data-generator
+  #   networks:
+  #     - flink
+
+  # category-feature-generator:
+  #   image: ibis-flink-feature-generator
+  #   build:
+  #     context: .
+  #     dockerfile: long-term-category-feature-generator.Dockerfile
+  #   depends_on:
+  #     - data-generator
+  #   networks:
+  #     - flink
 
 networks:
   flink:

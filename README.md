@@ -29,24 +29,31 @@ From your project directory, run `docker compose up` to create Kafka topics, gen
 After a few seconds, you should see messages indicating your Kafka environment is ready:
 
 ```bash
-ibis-flink-example-init-kafka-1      | Successfully created the following topics:
-ibis-flink-example-init-kafka-1      | payment_msg
-ibis-flink-example-init-kafka-1      | sink
+ibis-flink-example-init-kafka-1      | transaction
 ibis-flink-example-init-kafka-1 exited with code 0
 ibis-flink-example-data-generator-1  | Connected to Kafka
-ibis-flink-example-data-generator-1  | Producing 20000 records to Kafka topic payment_msg
+ibis-flink-example-data-generator-1  | send 1000 rows to kafka
+ibis-flink-example-data-generator-1  | send 1000 rows to kafka
+...
 ```
 
-The `payment_msg` Kafka topic contains messages in the following format:
+The `transaction` Kafka topic contains messages in the following format:
 
 ```json
-{
-    "createTime": "2023-09-20 22:19:02.224",
-    "orderId": 1695248388,
-    "payAmount": 88694.71922270155,
-    "payPlatform": 0,
-    "provinceId": 6
-}
+ {
+        "user_id": dt.int64,
+        "trans_date_trans_time": dt.timestamp(scale=3),
+        "cc_num": dt.int64,
+        "amt": dt.float64,
+        "trans_num": dt.str,
+        "merchant": dt.str,
+        "category": dt.str ,      
+        "is_fraud": dt.int32,
+        "first": dt.str,
+        "last": dt.str,
+        "dob": dt.str,
+        "zipcode": dt.str,
+    }
 ```
 
 In a separate terminal, we can explore what these messages look like:
@@ -54,28 +61,28 @@ In a separate terminal, we can explore what these messages look like:
 ```pycon
 >>> from kafka import KafkaConsumer
 >>>
->>> consumer = KafkaConsumer("payment_msg")
+>>> consumer = KafkaConsumer("transaction")
 >>> for _, msg in zip(range(3), consumer):
 ...     print(msg)
 ... 
-ConsumerRecord(topic='payment_msg', partition=0, offset=628, timestamp=1702073942808, timestamp_type=0, key=None, value=b'{"createTime": "2023-12-08 22:19:02.808", "orderId": 1702074256, "payAmount": 79901.88673289565, "payPlatform": 1, "provinceId": 1}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=131, serialized_header_size=-1)
-ConsumerRecord(topic='payment_msg', partition=0, offset=629, timestamp=1702073943310, timestamp_type=0, key=None, value=b'{"createTime": "2023-12-08 22:19:03.309", "orderId": 1702074257, "payAmount": 34777.62234573957, "payPlatform": 0, "provinceId": 3}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=131, serialized_header_size=-1)
-ConsumerRecord(topic='payment_msg', partition=0, offset=630, timestamp=1702073943811, timestamp_type=0, key=None, value=b'{"createTime": "2023-12-08 22:19:03.810", "orderId": 1702074258, "payAmount": 17101.347666982423, "payPlatform": 0, "provinceId": 2}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=132, serialized_header_size=-1)
+0, ConsumerRecord(topic='transaction', partition=0, offset=90000, timestamp=1705686143809, timestamp_type=0, key=None, value=b'{"trans_date_trans_time": "2012-02-23 00:10:01", "cc_num": 4428780000000000000, "merchant": "fraud_Olson, Becker and Koch", "category": "gas_transport", "amt": 82.55, "first": "Richard", "last": "Waters", "zipcode": "53186", "dob": "1/2/46", "trans_num": "dbf31d83eebdfe96d2fa213df2043586", "is_fraud": 0, "user_id": 7109464218691269943}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=337, serialized_header_size=-1))
+(1, ConsumerRecord(topic='transaction', partition=0, offset=90001, timestamp=1705686143809, timestamp_type=0, key=None, value=b'{"trans_date_trans_time": "2012-02-23 00:12:05", "cc_num": 6011490000000000, "merchant": "fraud_Schmitt Inc", "category": "gas_transport", "amt": 77.47, "first": "Gary", "last": "Barnes", "zipcode": "71762", "dob": "6/11/86", "trans_num": "8e2ab99602a3bc2ca943609b74b64871", "is_fraud": 0, "user_id": -3502299427506550148}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=322, serialized_header_size=-1))
+(2, ConsumerRecord(topic='transaction', partition=0, offset=90002, timestamp=1705686143809, timestamp_type=0, key=None, value=b'{"trans_date_trans_time": "2012-02-23 00:14:11", "cc_num": 4826660000000000, "merchant": "fraud_Reichert, Rowe and Mraz", "category": "shopping_net", "amt": 7.12, "first": "Tami", "last": "Forbes", "zipcode": "2630", "dob": "12/29/63", "trans_num": "34f0167e9b52e6cd21911de0908a0e5e", "is_fraud": 0, "user_id": -6454535437007309845}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=332, serialized_header_size=-1))
 ```
 
 ## Running the example
 
-The [included window aggregation example](window_aggregation.py) uses the Flink backend for Ibis to process the aforementioned payment messages, computing the total pay amount per province in the past 10 seconds (as of each message, for the province in the incoming message).
+The [included window aggregation example](create_user_features.py and create_user_features.ipynb) uses the Flink backend for Ibis to process the aforementioned credict card transaction, computing different aggregations over the last x minutes for each user.
 
 ### Local execution
 
 You can run the example using the Flink mini cluster from your project directory:
 
 ```bash
-python window_aggregation.py local
+python feature_generation/create_user_features.py --local
 ```
 
-Within a few seconds, you should see messages from the `sink` topic (containing the results of your computation) flooding the screen.
+Within a few seconds, you should see messages from the `user_trans_amt_last_Xmin` topic (containing the results of your computation) flooding the screen.
 
 > [!NOTE]
 > The mini cluster shuts down as soon as the Python session ends, so we print the Kafka messages until the process is cancelled (e.g. with <kbd>Ctrl</kbd>+<kbd>C</kbd>).
@@ -94,7 +101,7 @@ You can also submit the example to the [remote cluster started using Docker Comp
 My full command looks like this:
 
 ```bash
-/opt/miniconda3/envs/ibis-dev/lib/python3.10/site-packages/pyflink/bin/flink run --jobmanager localhost:8081 --python window_aggregation.py
+/opt/miniconda3/envs/ibis-dev/lib/python3.10/site-packages/pyflink/bin/flink run --jobmanager localhost:8081 --python feature_generation/create_user_features.py
 ```
 
 The command will exit after displaying a submission message:
@@ -112,16 +119,16 @@ Similar to how we viewed messages in the `payment_msg` topic, we can print resul
 >>> for _, msg in zip(range(10), consumer):
 ...     print(msg)
 ... 
-ConsumerRecord(topic='sink', partition=0, offset=8264, timestamp=1702076548075, timestamp_type=0, key=None, value=b'{"province_id":1,"pay_amount":102381.88254099473}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=49, serialized_header_size=-1)
-ConsumerRecord(topic='sink', partition=0, offset=8265, timestamp=1702076548480, timestamp_type=0, key=None, value=b'{"province_id":1,"pay_amount":114103.59313794877}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=49, serialized_header_size=-1)
-ConsumerRecord(topic='sink', partition=0, offset=8266, timestamp=1702076549085, timestamp_type=0, key=None, value=b'{"province_id":5,"pay_amount":65711.48588438489}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=48, serialized_header_size=-1)
-ConsumerRecord(topic='sink', partition=0, offset=8267, timestamp=1702076549488, timestamp_type=0, key=None, value=b'{"province_id":3,"pay_amount":388965.01567530684}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=49, serialized_header_size=-1)
-ConsumerRecord(topic='sink', partition=0, offset=8268, timestamp=1702076550098, timestamp_type=0, key=None, value=b'{"province_id":4,"pay_amount":151524.24311058817}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=49, serialized_header_size=-1)
-ConsumerRecord(topic='sink', partition=0, offset=8269, timestamp=1702076550502, timestamp_type=0, key=None, value=b'{"province_id":2,"pay_amount":290018.422116076}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=47, serialized_header_size=-1)
-ConsumerRecord(topic='sink', partition=0, offset=8270, timestamp=1702076550910, timestamp_type=0, key=None, value=b'{"province_id":5,"pay_amount":47098.24626524143}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=48, serialized_header_size=-1)
-ConsumerRecord(topic='sink', partition=0, offset=8271, timestamp=1702076551516, timestamp_type=0, key=None, value=b'{"province_id":4,"pay_amount":155309.68873659955}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=49, serialized_header_size=-1)
-ConsumerRecord(topic='sink', partition=0, offset=8272, timestamp=1702076551926, timestamp_type=0, key=None, value=b'{"province_id":2,"pay_amount":367397.8759861871}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=48, serialized_header_size=-1)
-ConsumerRecord(topic='sink', partition=0, offset=8273, timestamp=1702076552530, timestamp_type=0, key=None, value=b'{"province_id":3,"pay_amount":182191.45302431137}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=49, serialized_header_size=-1)
+ConsumerRecord(topic='user_trans_amt_last_360min', partition=0, offset=498016, timestamp=1705623329919, timestamp_type=0, key=None, value=b'{"before":null,"after":{"user_id":7584046863221534119,"user_max_trans_amt_last_360min":9.28,"user_min_trans_amt_last_360min":9.28,"user_mean_trans_amt_last_360min":9.28,"user_trans_count_last_360min":1,"trans_date_trans_time":"2012-03-05 10:02:42"},"op":"c"}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=258, serialized_header_size=-1)
+ConsumerRecord(topic='user_trans_amt_last_360min', partition=0, offset=498017, timestamp=1705623329919, timestamp_type=0, key=None, value=b'{"before":null,"after":{"user_id":-227411383219759975,"user_max_trans_amt_last_360min":238.98,"user_min_trans_amt_last_360min":129.62,"user_mean_trans_amt_last_360min":184.3,"user_trans_count_last_360min":2,"trans_date_trans_time":"2012-03-05 10:05:20"},"op":"c"}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=263, serialized_header_size=-1)
+ConsumerRecord(topic='user_trans_amt_last_360min', partition=0, offset=498018, timestamp=1705623329919, timestamp_type=0, key=None, value=b'{"before":null,"after":{"user_id":5540113790583634747,"user_max_trans_amt_last_360min":321.13,"user_min_trans_amt_last_360min":85.0,"user_mean_trans_amt_last_360min":175.16666666666663,"user_trans_count_last_360min":3,"trans_date_trans_time":"2012-03-05 10:06:44"},"op":"c"}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=274, serialized_header_size=-1)
+ConsumerRecord(topic='user_trans_amt_last_360min', partition=0, offset=498019, timestamp=1705623329919, timestamp_type=0, key=None, value=b'{"before":null,"after":{"user_id":5473941431289561122,"user_max_trans_amt_last_360min":65.1,"user_min_trans_amt_last_360min":65.1,"user_mean_trans_amt_last_360min":65.1,"user_trans_count_last_360min":1,"trans_date_trans_time":"2012-03-05 10:07:04"},"op":"c"}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=258, serialized_header_size=-1)
+ConsumerRecord(topic='user_trans_amt_last_360min', partition=0, offset=498020, timestamp=1705623329919, timestamp_type=0, key=None, value=b'{"before":null,"after":{"user_id":-8002661054777632739,"user_max_trans_amt_last_360min":100.47,"user_min_trans_amt_last_360min":100.47,"user_mean_trans_amt_last_360min":100.47,"user_trans_count_last_360min":1,"trans_date_trans_time":"2012-03-05 10:08:10"},"op":"c"}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=265, serialized_header_size=-1)
+ConsumerRecord(topic='user_trans_amt_last_360min', partition=0, offset=498021, timestamp=1705623329919, timestamp_type=0, key=None, value=b'{"before":null,"after":{"user_id":4533977973587865842,"user_max_trans_amt_last_360min":32.6,"user_min_trans_amt_last_360min":4.37,"user_mean_trans_amt_last_360min":18.484999999999985,"user_trans_count_last_360min":2,"trans_date_trans_time":"2012-03-05 10:09:37"},"op":"c"}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=272, serialized_header_size=-1)
+ConsumerRecord(topic='user_trans_amt_last_360min', partition=0, offset=498022, timestamp=1705623329919, timestamp_type=0, key=None, value=b'{"before":null,"after":{"user_id":3481231273808269436,"user_max_trans_amt_last_360min":151.31,"user_min_trans_amt_last_360min":110.31,"user_mean_trans_amt_last_360min":130.81,"user_trans_count_last_360min":2,"trans_date_trans_time":"2012-03-05 10:09:46"},"op":"c"}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=264, serialized_header_size=-1)
+ConsumerRecord(topic='user_trans_amt_last_360min', partition=0, offset=498023, timestamp=1705623329919, timestamp_type=0, key=None, value=b'{"before":null,"after":{"user_id":-8934990280846121883,"user_max_trans_amt_last_360min":59.72,"user_min_trans_amt_last_360min":59.72,"user_mean_trans_amt_last_360min":59.72,"user_trans_count_last_360min":1,"trans_date_trans_time":"2012-03-05 10:10:13"},"op":"c"}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=262, serialized_header_size=-1)
+ConsumerRecord(topic='user_trans_amt_last_360min', partition=0, offset=498024, timestamp=1705623329919, timestamp_type=0, key=None, value=b'{"before":null,"after":{"user_id":-4445344990296535100,"user_max_trans_amt_last_360min":74.49,"user_min_trans_amt_last_360min":60.65,"user_mean_trans_amt_last_360min":67.57,"user_trans_count_last_360min":2,"trans_date_trans_time":"2012-03-05 10:10:49"},"op":"c"}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=262, serialized_header_size=-1)
+ConsumerRecord(topic='user_trans_amt_last_360min', partition=0, offset=498025, timestamp=1705623329919, timestamp_type=0, key=None, value=b'{"before":null,"after":{"user_id":1953379549727975020,"user_max_trans_amt_last_360min":55.26,"user_min_trans_amt_last_360min":55.26,"user_mean_trans_amt_last_360min":55.26,"user_trans_count_last_360min":1,"trans_date_trans_time":"2012-03-05 10:11:32"},"op":"c"}', headers=[], checksum=None, serialized_key_size=-1, serialized_value_size=261, serialized_header_size=-1)
 ```
 
 ## Shutting down the Compose environment
