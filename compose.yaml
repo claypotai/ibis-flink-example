@@ -1,6 +1,6 @@
 services:
   jobmanager:
-    image: flink:1.18.0
+    image: flink:1.18.1
     ports:
       - "8081:8081"
     command: jobmanager
