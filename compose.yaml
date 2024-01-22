@@ -1,13 +1,11 @@
 services:
   jobmanager:
-    image: ibis-flink
-    build: .
+    image: flink:1.18.0
     ports:
       - "8081:8081"
     command: jobmanager
     environment:
-      - |
-        FLINK_PROPERTIES=
+      FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
     networks:
       - flink
@@ -19,8 +17,7 @@ services:
       - jobmanager
     command: taskmanager
     environment:
-      - |
-        FLINK_PROPERTIES=
+      FLINK_PROPERTIES: |
         jobmanager.rpc.address: jobmanager
         taskmanager.numberOfTaskSlots: 2  
     networks:
