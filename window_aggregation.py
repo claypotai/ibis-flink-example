@@ -20,7 +20,7 @@ connection = ibis.flink.connect(table_env)
 
 # Flink’s streaming connectors aren't part of the binary distribution.
 # Link the Kafka connector for cluster execution by adding a JAR file.
-connection._exec_sql("ADD JAR 'flink-sql-connector-kafka-3.0.2-1.18.jar'")
+connection.raw_sql("ADD JAR 'flink-sql-connector-kafka-3.0.2-1.18.jar'")
 
 # 2. create source Table
 source_schema = sch.Schema(
