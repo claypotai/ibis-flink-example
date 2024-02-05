@@ -12,7 +12,6 @@ from kafka import KafkaProducer, errors
 
 
 def write_fraud_detection_data_from_s3(producer):
-
     topic = "transaction"
     batch_size = 1000
 
@@ -41,6 +40,7 @@ def write_fraud_detection_data_from_s3(producer):
     keys = next(reader)
 
     print(f"Send records to Kafka topic {topic}")
+    num_batches = 0
     cnt = 0
     for values in reader:
         data_dict = dict(zip(keys, values))
@@ -61,7 +61,12 @@ def write_fraud_detection_data_from_s3(producer):
             producer.flush()
             print(f"send {cnt} rows to kafka")
             cnt = 0
+            num_batches += 1
             sleep(1)
+
+        if num_batches > 100:
+            break
+
     if cnt > 0:
         producer.flush()
     producer.close()

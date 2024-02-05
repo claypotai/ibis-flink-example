@@ -52,6 +52,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command: |
       "
+      sleep 2
       # blocks until kafka is reachable
       kafka-topics --bootstrap-server kafka:${KAFKA_PORT} --list
 
@@ -77,12 +78,29 @@ services:
     networks:
       - flink
 
-  dashboard:
-    hostname: dashboard
-    container_name: dashboard
+  influxdb:
+    hostname: influxdb
+    container_name: influxdb
+    image: influxdb:2.3.0
+    ports:
+      - ${INFLUXDB_PORT}:${INFLUXDB_PORT}
+    networks:
+      - flink
+    command: sh -c "influxd & sleep 5; influx config rm dashboard_config && influx setup --name dashboard_config --username dashboard --password dashboard --token dashboard --org dashboard --bucket dashboard --force; sleep infinity"
+    # command: |
+    #   "
+    #   influxd &
+    #   sleep 5
+    #   influx config rm dashboard_config && influx setup --name dashboard_config --username dashboard --password dashboard --token dashboard --org dashboard --bucket dashboard --force
+    #   sleep infinity
+    #   "
+
+  dashboard_w_influxdb:
+    hostname: dashboard_w_influxdb
+    container_name: dashboard_w_influxdb
     ports:
       - ${DASHBOARD_PORT}:${DASHBOARD_PORT}
-    image: dashboard
+    image: dashboard_w_influxdb
     environment:
       KAFKA_SERVICE: kafka
       KAFKA_BOOTSTRAP_PORT: ${KAFKA_PORT}
@@ -92,36 +110,17 @@ services:
       DASHBOARD_PORT: ${DASHBOARD_PORT}
     build:
       context: .
-      dockerfile: dashboard.Dockerfile
+      dockerfile: dashboard_w_influxdb.Dockerfile
       args:
         - DASHBOARD_PORT=${DASHBOARD_PORT}
     depends_on:
       - data-generator
       - init-kafka
+      - influxdb
       - kafka
     networks:
       - flink
-    restart: on-failure:5
-
-  # user-feature-generator:
-  #   image: ibis-flink-feature-generator
-  #   build:
-  #     context: .
-  #     dockerfile: user-feature-generator.Dockerfile
-  #   depends_on:
-  #     - data-generator
-  #   networks:
-  #     - flink
-
-  # category-feature-generator:
-  #   image: ibis-flink-feature-generator
-  #   build:
-  #     context: .
-  #     dockerfile: long-term-category-feature-generator.Dockerfile
-  #   depends_on:
-  #     - data-generator
-  #   networks:
-  #     - flink
+    restart: on-failure
 
 networks:
   flink:
