@@ -1,8 +1,7 @@
 import sys
+from itertools import islice
 
 import ibis
-import ibis.expr.datatypes as dt
-import ibis.expr.schema as sch
 from kafka import KafkaConsumer
 from pyflink.table import EnvironmentSettings, TableEnvironment
 
@@ -16,20 +15,20 @@ table_env.get_config().set("parallelism.default", "1")
 
 # The `flink` backend does not create `TableEnvironment` objects; pass
 # the `TableEnvironment` object created above to `ibis.flink.connect`.
-connection = ibis.flink.connect(table_env)
+con = ibis.flink.connect(table_env)
 
 # Flink’s streaming connectors aren't part of the binary distribution.
 # Link the Kafka connector for cluster execution by adding a JAR file.
-connection.raw_sql("ADD JAR 'flink-sql-connector-kafka-3.0.2-1.18.jar'")
+con.raw_sql("ADD JAR 'flink-sql-connector-kafka-3.0.2-1.18.jar'")
 
 # 2. create source Table
-source_schema = sch.Schema(
+source_schema = ibis.schema(
     {
-        "createTime": dt.timestamp(scale=3),
-        "orderId": dt.int64,
-        "payAmount": dt.float64,
-        "payPlatform": dt.int32,
-        "provinceId": dt.int32,
+        "createTime": "timestamp(3)",
+        "orderId": "int64",
+        "payAmount": "float64",
+        "payPlatform": "int32",
+        "provinceId": "int32",
     }
 )
 
@@ -42,7 +41,7 @@ source_configs = {
     "format": "json",
 }
 
-t = connection.create_table(
+t = con.create_table(
     "payment_msg",
     schema=source_schema,
     tbl_properties=source_configs,
@@ -52,10 +51,10 @@ t = connection.create_table(
 )
 
 # 3. create sink Table
-sink_schema = sch.Schema(
+sink_schema = ibis.schema(
     {
-        "province_id": dt.int32,
-        "pay_amount": dt.float64,
+        "province_id": "int32",
+        "pay_amount": "float64",
     }
 )
 
@@ -66,28 +65,26 @@ sink_configs = {
     "format": "json",
 }
 
-connection.create_table(
+con.create_table(
     "total_amount_by_province_id", schema=sink_schema, tbl_properties=sink_configs
 )
 
 # 4. query from source table and perform calculations
-agged = t[
-    t.provinceId.name("province_id"),
-    t.payAmount.sum()
-    .over(
+agged = t.select(
+    province_id=t.provinceId,
+    pay_amount=t.payAmount.sum().over(
         range=(-ibis.interval(seconds=10), 0),
         group_by=t.provinceId,
         order_by=t.createTime,
-    )
-    .name("pay_amount"),
-]
+    ),
+)
 
 # 5. emit query result to sink table
-connection.insert("total_amount_by_province_id", agged)
+con.insert("total_amount_by_province_id", agged)
 
 if local:
     # Use the Kafka Python client to stream records from the sink topic.
     # Otherwise, the mini cluster will shut down upon script completion.
     consumer = KafkaConsumer("sink")
-    for msg in zip(consumer):
+    for msg in islice(consumer, 10):
         print(msg)
