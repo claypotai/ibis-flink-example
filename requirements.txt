@@ -1,3 +1,3 @@
 apache-flink==1.18.1
-ibis-framework @ git+https://github.com/ibis-project/ibis.git@main
+ibis-framework>=8
 kafka-python
